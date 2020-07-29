@@ -121,7 +121,11 @@ router.get('/private', routeGuard, (req, res, next) => {
 
 router.get('/authentication/confirm-email', (req, res, next) => {
   const emailToken = req.query.token;
-  User.findOneAndUpdate({ confirmationToken: emailToken}, {status: 'active'})
+  User.findOneAndUpdate(
+    { confirmationToken: emailToken}, 
+    {status: 'active'},
+    {new: true}
+  )
   .then(user => {
     req.session.user = user._id;
     req.session.user = user.token;
