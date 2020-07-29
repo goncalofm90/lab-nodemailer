@@ -1,8 +1,26 @@
+const dotenv = require('dotenv');
+dotenv.config();
 const { Router } = require('express');
 const router = new Router();
+const nodemailer = require('nodemailer');
+const transport = nodemailer.createTransport({
+  service: 'Gmail', 
+  auth: {
+    user: process.env.NODEMAILER_EMAIL,
+    pass: process.env.NODEMAILER_PASSWORD
+  }
+})
 
 const User = require('./../models/user');
 const bcryptjs = require('bcryptjs');
+const generateRandomToken = length => {
+  const characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  let token = '';
+  for (let i = 0; i < length; i++) {
+    token += characters[Math.floor(Math.random() * characters.length)];
+  }
+  return token;
+};  
 
 router.get('/', (req, res, next) => {
   res.render('index');
@@ -14,18 +32,47 @@ router.get('/sign-up', (req, res, next) => {
 
 router.post('/sign-up', (req, res, next) => {
   const { name, email, password } = req.body;
+  const token = generateRandomToken(10);
   bcryptjs
     .hash(password, 10)
     .then(hash => {
       return User.create({
         name,
         email,
-        passwordHash: hash
+        passwordHash: hash,
+        confirmationToken: token,
       });
     })
     .then(user => {
       req.session.user = user._id;
+      const confirmationUrl = "http://localhost:3000/authentication/confirm-email?token=THE-CONFIRMATION-CODE-OF-THE-USER";
+      transport.sendMail({
+        from: process.env.NODEMAILER_EMAIL,
+        to: process.env.NODEMAILER_EMAIL,
+        subject: 'An email from Gonçalo',
+        // text: 'Hello World',
+        html: `
+        <html>
+          <head>
+           </head>
+             <body>
+             <h1>Welcome</h1>
+                <img src="https://images.unsplash.com/photo-1550291652-6ea9114a47b1?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=934&q=80" width="300px" height="300px" alt="">
+                <p><a href="${confirmationUrl}">Confirmation Link</a></p>
+             </body>
+           </html>
+              `,
+      })
+      .then(result => {
+      req.session.user = user._id;
+      console.log('Email was sent');
+      console.log(result);
       res.redirect('/');
+      })
+      .catch(error => {
+        console.log('Error sending email');
+        console.log(error);
+      })
     })
     .catch(error => {
       next(error);
