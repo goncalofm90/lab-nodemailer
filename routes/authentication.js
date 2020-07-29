@@ -130,7 +130,7 @@ router.get('/authentication/confirm-email', (req, res, next) => {
     req.session.user = user._id;
     req.session.user = user.token;
     console.log(user.token);
-    res.render('confirmation');
+    res.render('confirmation', {user});
     console.log("email was confirmed succesfully");
     })
     .catch(error => {
