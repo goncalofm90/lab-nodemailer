@@ -45,7 +45,7 @@ router.post('/sign-up', (req, res, next) => {
     })
     .then(user => {
       req.session.user = user._id;
-      const confirmationUrl = "http://localhost:3000/authentication/confirm-email?token=THE-CONFIRMATION-CODE-OF-THE-USER";
+      const confirmationUrl = `http://localhost:3000/authentication/confirm-email?token=${token}`;
       transport.sendMail({
         from: process.env.NODEMAILER_EMAIL,
         to: process.env.NODEMAILER_EMAIL,
@@ -118,5 +118,20 @@ const routeGuard = require('./../middleware/route-guard');
 router.get('/private', routeGuard, (req, res, next) => {
   res.render('private');
 });
+
+router.get('/authentication/confirm-email', (req, res, next) => {
+  const emailToken = req.query.token;
+  User.findOneAndUpdate({ confirmationToken: emailToken}, {status: 'active'})
+  .then(user => {
+    req.session.user = user._id;
+    req.session.user = user.token;
+    console.log(user.token);
+    res.render('confirmation');
+    console.log("email was confirmed succesfully");
+    })
+    .catch(error => {
+     next(error);
+    });
+  });
 
 module.exports = router;
